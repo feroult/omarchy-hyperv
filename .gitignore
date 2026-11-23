@@ -1,0 +1,18 @@
+# Configuração local do usuário (copie de .env.example)
+.env
+
+# Logs e arquivos temporários
+*.log
+*.tmp
+tmp/
+
+# Chaves SSH caso geradas localmente por engano
+id_ed25519
+id_rsa
+*.pem
+*.key
+
+# Arquivos do SO
+.DS_Store
+Thumbs.db
+desktop.ini
