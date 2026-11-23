@@ -468,6 +468,8 @@ if [[ -f "$HYPR_LUA" ]]; then
         MON_MODE="modeline 782.12 3440 3448 3480 3520 1440 1443 1451 1543 +hsync -vsync"
     elif [[ "$DISPLAY_RESOLUTION" == "3440x1440" && "$DISPLAY_REFRESH_RATE" == "120" ]]; then
         MON_MODE="modeline 644.16 3440 3448 3480 3520 1440 1443 1451 1525 +hsync -vsync"
+    elif [[ "$DISPLAY_RESOLUTION" == "3440x1440" && "$DISPLAY_REFRESH_RATE" == "60" ]]; then
+        MON_MODE="modeline 312.79 3440 3448 3480 3520 1440 1443 1451 1481 +hsync -vsync"
     fi
     cat <<EOF > "${TARGET_HOME}/.config/hypr/monitors.lua"
 -- Winix :: Monitor Virtual 2K Ultrawide (vkms -> Sunshine -> Moonlight)
@@ -539,8 +541,8 @@ minimum_fps_target = 5
 sw_preset = ultrafast
 sw_tune = zerolatency
 nvenc_preset = 1
-nvenc_spatial_aq = enabled
-nvenc_twopass = quarter_res
+nvenc_spatial_aq = disabled
+nvenc_twopass = disabled
 
 # Virtual Switch interno (192.168.50.0/24, < 1ms, sem perda de pacotes)
 fec_percentage = 1

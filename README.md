@@ -194,8 +194,8 @@ Re-run `.\sync\sync-gpu-drivers.ps1` (or `./sync/sync-gpu-drivers.sh` from WSL2)
 | Moonlight Setting | Recommended Value |
 | :--- | :--- |
 | **Resolution** | **`3440x1440`** *(matches 21:9 natively — prevents 16:9 windowboxing)* |
-| **FPS** | **`120`** *(sweet spot for fluidity vs. CPU thermals; matches `Virtual-2` 1:1)* |
-| **Video bitrate** | **`120–150 Mbps`** (`< 1 ms` virtual switch) |
+| **FPS** | **`60`** *(coolest & quietest, ~27% CPU on 1 core with NVENC; switch to `120` anytime via `set-ultrawide.sh 120`)* |
+| **Video bitrate** | **`80–100 Mbps`** at `60 FPS` *(or `120–150 Mbps` at `120 FPS`)* |
 | **Display mode** | **`Borderless windowed`** |
 | **V-Sync** | **Enabled** |
 | **Frame Pacing** | **Enabled** |

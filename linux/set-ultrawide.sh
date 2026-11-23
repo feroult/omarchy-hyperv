@@ -2,23 +2,25 @@
 # ==============================================================================
 # Winix :: set-ultrawide.sh
 # Aplica resolução 2K Ultrawide (3440x1440) no monitor virtual vkms (Omarchy 4.5 Lua)
-# com modeline VESA CVT-RBv2 exato.
+# com modeline VESA CVT-RBv2 exato + otimizações NVENC de baixo overhead.
 #
 # Uso:
-#   ./linux/set-ultrawide.sh          # padrão: 120Hz (equilíbrio ideal fluidez/temperatura)
+#   ./linux/set-ultrawide.sh          # padrão: 60Hz (mais frio e silencioso, ~27% CPU)
+#   ./linux/set-ultrawide.sh 120      # 120Hz
 #   ./linux/set-ultrawide.sh 144      # 144Hz
 #   ./linux/set-ultrawide.sh 165      # 165Hz
 # ==============================================================================
 
 set -euo pipefail
 
-HZ="${1:-120}"
+HZ="${1:-60}"
 case "$HZ" in
+    60)  MODELINE="modeline 312.79 3440 3448 3480 3520 1440 1443 1451 1481 +hsync -vsync" ;;
     120) MODELINE="modeline 644.16 3440 3448 3480 3520 1440 1443 1451 1525 +hsync -vsync" ;;
     144) MODELINE="modeline 782.12 3440 3448 3480 3520 1440 1443 1451 1543 +hsync -vsync" ;;
     165) MODELINE="modeline 905.47 3440 3448 3480 3520 1440 1443 1451 1559 +hsync -vsync" ;;
     *)
-        echo "Taxa nao suportada: '${HZ}'. Use 120, 144 ou 165." >&2
+        echo "Taxa nao suportada: '${HZ}'. Use 60, 120, 144 ou 165." >&2
         exit 1
         ;;
 esac
@@ -55,9 +57,13 @@ touch ~/.local/state/omarchy/indicators/stay-awake
 ln -sf /dev/null ~/.config/systemd/user/hypridle.service 2>/dev/null || true
 pkill hypridle 2>/dev/null || true
 
-# Garante taxas disponíveis no sunshine.conf e reinicia Sunshine
+# Otimiza Sunshine para NVENC de baixo overhead na LAN <1ms e reinicia
 if [[ -f ~/.config/sunshine/sunshine.conf ]]; then
-    sed -i 's/^fps = .*/fps = [60, 120, 144, 165]/' ~/.config/sunshine/sunshine.conf
+    sed -i \
+        -e 's/^fps = .*/fps = [60, 120, 144, 165]/' \
+        -e 's/^nvenc_twopass.*/nvenc_twopass = disabled/' \
+        -e 's/^nvenc_spatial_aq.*/nvenc_spatial_aq = disabled/' \
+        ~/.config/sunshine/sunshine.conf
 fi
 
 echo "--- HYPRCTL MONITORS ---"
@@ -66,4 +72,4 @@ hyprctl monitors | head -n 15
 pkill -9 sunshine 2>/dev/null || true
 sleep 1
 systemctl --user start sunshine
-echo "[OK] Sunshine reiniciado (3440x1440@${HZ}Hz pronto)!"
+echo "[OK] Sunshine reiniciado (3440x1440@${HZ}Hz + NVENC low-overhead pronto)!"
