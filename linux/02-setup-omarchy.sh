@@ -526,14 +526,16 @@ upnp = disabled
 # Captura KMS direta sobre vkms (com GALLIUM_DRIVER=llvmpipe isolado no sunshine.service para suportar EGL_EXT_image_dma_buf_import)
 capture = kms
 
-# Encoder software (libx264/libx265 com AVX-512 nos 16 vCPUs do 9950X — startup rápido)
-encoder = software
+# Auto-detecção de encoder: usa NVENC de hardware da RTX (H.264 / HEVC 4:4:4 / AV1) via /usr/lib/wsl/lib
+# após sync-gpu-drivers, com fallback automático para software (libx264 AVX-512) caso ainda não sincronizado.
+encoder =
 
 # Auto-negociação de HEVC/AV1 (0 = anuncia se o encoder suportar; evita falha no probe de startup)
 hevc_mode = 0
 av1_mode = 0
-qp = 18
-min_threads = 4
+qp = 20
+min_threads = 2
+minimum_fps_target = 5
 sw_preset = ultrafast
 sw_tune = zerolatency
 nvenc_preset = 1
@@ -577,9 +579,10 @@ After=graphical-session.target
 [Service]
 Type=simple
 # Sunshine usa llvmpipe para o contexto EGL interno (suporta EGL_EXT_image_dma_buf_import com vkms),
-# enquanto CUDA/NVML/Ollama continuam 100% acelerados na GPU NVIDIA via /dev/dxg.
+# enquanto LD_LIBRARY_PATH=/usr/lib/wsl/lib habilita NVENC de hardware (H.264 / HEVC 4:4:4 / AV1) na RTX via /dev/dxg.
 Environment="GALLIUM_DRIVER=llvmpipe"
 Environment="LIBGL_ALWAYS_SOFTWARE=1"
+Environment="LD_LIBRARY_PATH=/usr/lib/wsl/lib"
 ExecStart=${SUNSHINE_BIN}
 Restart=on-failure
 RestartSec=3

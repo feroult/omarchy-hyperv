@@ -35,13 +35,14 @@ flowchart LR
         LLM["Ollama / vLLM / CUDA (/dev/dxg + /usr/lib/wsl/lib)"]
         VKMS["vkms (card0 / Virtual-2 3440x1440@120Hz CVT-RBv2)"]
         OM["Omarchy 4.5 Hyprland (AQ_DRM_DEVICES=card0 + llvmpipe)"]
-        SUN["Sunshine (KMS capture + libx264 AVX-512)"]
+        SUN["Sunshine (KMS capture + RTX NVENC H.264/HEVC/AV1)"]
         UFW["UFW (Default Deny + Allow 192.168.50.0/24)"]
     end
 
     GPU -- "GPU-P (-InstancePath + 64GB HighMMIO)" --> DXG
     WSL2 -. "sync-gpu-drivers (SCP)" .-> DXG
     DXG --> LLM
+    DXG -. "NVENC (libnvidia-encode)" .-> SUN
     VKMS --> OM
     OM --> SUN
     SUN --> UFW
@@ -49,8 +50,8 @@ flowchart LR
     SW --> ML
 ```
 
-> **Why do Hyprland & Sunshine use `llvmpipe`/`libx264` (CPU AVX-512) while CUDA runs 100% on the RTX?**
-> Hyper-V's `/dev/dxg` paravirtualized device does not expose a DRM/GBM render node (`/dev/dri/renderD128`) for Aquamarine/`vkms`. Scoping the compositor and Sunshine to `llvmpipe` on the VM's vCPUs avoids Aquamarine `gbm_bo_create` (`bo null`) and `EGL_EXT_image_dma_buf_import` failures, reserves **100% of the RTX for CUDA/LLM workloads**, and keeps Omarchy responsive even while Windows games saturate 90%+ of the RTX.
+> **How GPU-P splits the workload cleanly:**
+> Hyper-V's `/dev/dxg` paravirtualized device does not expose a DRM/GBM render node (`/dev/dri/renderD128`) for Aquamarine/`vkms`, so Hyprland's compositor uses Mesa `llvmpipe` (~1–2% CPU) while **CUDA (`libcuda.so`) AND Sunshine hardware video encoding (`h264_nvenc`, `hevc_nvenc` with 4:4:4, `av1_nvenc`) run directly on the RTX via `/dev/dxg` + `/usr/lib/wsl/lib`**! That drops Sunshine's CPU load by **>4×** compared to software `libx264` and keeps the host cool and quiet.
 
 ---
 
@@ -90,7 +91,7 @@ omarchy-hyperv/
 | **UWSM / Aquamarine** | `~/.config/environment.d/90-winix-vkms.conf` + `~/.config/uwsm/env-hyprland` | Pins `AQ_DRM_DEVICES=/dev/dri/card0` (prevents `vkms` + `hyperv_drm` multi-GPU GBM crash), `AQ_NO_MODIFIERS=1`, `LIBGL_ALWAYS_SOFTWARE=1`, `GALLIUM_DRIVER=llvmpipe` |
 | **Ultrawide Display** | `~/.config/hypr/monitors.lua` *(Omarchy 4.5+)* | Locks `Virtual-2` to `3440x1440@120Hz` (exact VESA CVT-RBv2 modeline), `scale = 1`, `GDK_SCALE = 1`, `WLR_NO_HARDWARE_CURSORS = 1` |
 | **Prevent Black Screen** | `omarchy-toggle-idle stay-awake` (`~/.local/state/omarchy/indicators/stay-awake`) | Keeps Omarchy 4.5's native QML idle service from triggering `dpms off` on `vkms` (Windows manages physical monitor sleep) |
-| **Sunshine** | `~/.config/sunshine/{sunshine.conf,apps.json}` + `~/.config/systemd/user/sunshine.service` | `capture = kms`, `encoder = software` (AVX-512), `csrf_allowed_origins`, isolated `GALLIUM_DRIVER=llvmpipe` |
+| **Sunshine** | `~/.config/sunshine/{sunshine.conf,apps.json}` + `~/.config/systemd/user/sunshine.service` | `capture = kms`, hardware **RTX NVENC** (`h264_nvenc` / `hevc_nvenc` / `av1_nvenc` via `LD_LIBRARY_PATH=/usr/lib/wsl/lib`), `minimum_fps_target = 5`, `csrf_allowed_origins`, isolated `GALLIUM_DRIVER=llvmpipe` for KMS EGL |
 | **Static Networking** | `/etc/systemd/network/10-winix-hyperv.network` | Static `192.168.50.2/24`, Gateway `192.168.50.1`, DNS `1.1.1.1` / `9.9.9.9` |
 | **Security Hardening** | `/etc/ssh/sshd_config.d/99-winix-security.conf` + `ufw` + `/etc/sudoers.d/99-winix-ops` | `PermitRootLogin no`, default-deny UFW allowing SSH/Sunshine strictly from `192.168.50.0/24`, least-privilege sudoers (`ldconfig` + `systemctl ollama` only) |
 
@@ -199,9 +200,12 @@ Re-run `.\sync\sync-gpu-drivers.ps1` (or `./sync/sync-gpu-drivers.sh` from WSL2)
 | **V-Sync** | **Enabled** |
 | **Frame Pacing** | **Enabled** |
 | **HDR** | **Disabled (OFF)** *(SDR 8-bit keeps Omarchy colors and text razor-sharp)* |
-| **Video codec** | **`Automatic`** or **`H.264`** (`libx264` High 4:4:4 with AVX-512) |
+| **Video codec** | **`HEVC (H.265)`** *(supports YUV 4:4:4 on NVENC)* or **`AV1`** (`av1_nvenc`) |
+| **Enable YUV 4:4:4** | **Enabled** *(with HEVC — razor-sharp IDE/terminal text)* |
 | **Optimize mouse for Remote Desktop** | **Enabled** *(exact 1:1 Windows pointer speed)* |
 | **Capture system keyboard shortcuts** | **`Only in fullscreen`** |
+
+> **Tip for G-Sync / FreeSync monitors (eliminates brightness flicker):** In **NVIDIA Control Panel → Manage 3D settings → Program Settings**, add `C:\Program Files\Moonlight Game Streaming\Moonlight.exe` *(NVIDIA's database may display its name as "Fear The Night" — that's normal!)* and set **Monitor Technology → Fixed Refresh**. G-Sync stays enabled for all your games while Moonlight runs flicker-free.
 
 5. Launch **`Omarchy`** in Moonlight. *(To switch the virtual display between `120Hz`, `144Hz`, or `165Hz` later, run `~/omarchy-hyperv/linux/set-ultrawide.sh 144` inside the VM.)*
 

@@ -594,6 +594,7 @@ After=graphical-session.target
 Type=simple
 Environment="GALLIUM_DRIVER=llvmpipe"
 Environment="LIBGL_ALWAYS_SOFTWARE=1"
+Environment="LD_LIBRARY_PATH=/usr/lib/wsl/lib"
 ExecStart=${SUNSHINE_BIN}
 Restart=on-failure
 RestartSec=3
