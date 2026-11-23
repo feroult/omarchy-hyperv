@@ -89,7 +89,7 @@ omarchy-hyperv/
 | **CUDA Runtime** | `/etc/ld.so.conf.d/99-winix-wsl.conf` + `/etc/profile.d/99-winix-gpup.sh` | Exposes `/usr/lib/wsl/lib` (`nvidia-smi` + `libcuda.so`) |
 | **UWSM / Aquamarine** | `~/.config/environment.d/90-winix-vkms.conf` + `~/.config/uwsm/env-hyprland` | Pins `AQ_DRM_DEVICES=/dev/dri/card0` (prevents `vkms` + `hyperv_drm` multi-GPU GBM crash), `AQ_NO_MODIFIERS=1`, `LIBGL_ALWAYS_SOFTWARE=1`, `GALLIUM_DRIVER=llvmpipe` |
 | **Ultrawide Display** | `~/.config/hypr/monitors.lua` *(Omarchy 4.5+)* | Locks `Virtual-2` to `3440x1440@120Hz` (exact VESA CVT-RBv2 modeline), `scale = 1`, `GDK_SCALE = 1`, `WLR_NO_HARDWARE_CURSORS = 1` |
-| **Prevent Black Screen** | `~/.config/systemd/user/hypridle.service -> /dev/null` | Disables `dpms off` on the virtual `vkms` output (Windows manages physical monitor sleep) |
+| **Prevent Black Screen** | `omarchy-toggle-idle stay-awake` (`~/.local/state/omarchy/indicators/stay-awake`) | Keeps Omarchy 4.5's native QML idle service from triggering `dpms off` on `vkms` (Windows manages physical monitor sleep) |
 | **Sunshine** | `~/.config/sunshine/{sunshine.conf,apps.json}` + `~/.config/systemd/user/sunshine.service` | `capture = kms`, `encoder = software` (AVX-512), `csrf_allowed_origins`, isolated `GALLIUM_DRIVER=llvmpipe` |
 | **Static Networking** | `/etc/systemd/network/10-winix-hyperv.network` | Static `192.168.50.2/24`, Gateway `192.168.50.1`, DNS `1.1.1.1` / `9.9.9.9` |
 | **Security Hardening** | `/etc/ssh/sshd_config.d/99-winix-security.conf` + `ufw` + `/etc/sudoers.d/99-winix-ops` | `PermitRootLogin no`, default-deny UFW allowing SSH/Sunshine strictly from `192.168.50.0/24`, least-privilege sudoers (`ldconfig` + `systemctl ollama` only) |
@@ -262,7 +262,7 @@ Before launching heavy Windows games like *Battlefield 6*:
 | `/dev/dxg` missing after reboot | Verify `uname -r` ends in `-lts`. If Limine booted `linux-omarchy`, check `default_entry` in `/boot/limine.conf` points to `//linux-lts`. |
 | `CSRF Protection Error` on Sunshine Web UI | Ensure `csrf_allowed_origins = https://192.168.50.2:47990` is set in `~/.config/sunshine/sunshine.conf` and restart `sunshine`. |
 | Stuck on Omarchy boot splash or `GBM: bo null` in `hyprland.log` | Ensure `~/.config/uwsm/env-hyprland` exports `AQ_DRM_DEVICES=/dev/dri/card0`, `AQ_NO_MODIFIERS=1`, `LIBGL_ALWAYS_SOFTWARE=1`, and `GALLIUM_DRIVER=llvmpipe` to prevent `vkms` + `hyperv_drm` multi-GPU GBM allocation failures. |
-| Black screen in Moonlight after being idle | `hypridle` triggered `dpms off` on `vkms` (`dpmsStatus: 0`). Ensure `~/.config/systemd/user/hypridle.service -> /dev/null` is masked and restart SDDM (`sudo systemctl restart sddm`) or reboot the VM. |
+| Black screen in Moonlight after being idle | Omarchy 4.5's QML idle service triggered `dpms off` on `vkms` (`dpmsStatus: 0`). Run `omarchy-toggle-idle stay-awake` (persists across reboots) and `sudo systemctl restart sddm` to wake the session cleanly. |
 | Black borders on all 4 sides on an Ultrawide monitor | Set Moonlight's **Resolution** setting to **`3440x1440`** instead of `1080p`/`1440p` (16:9). |
 | `Save-VM` fails with `-SuspendVM` | Known Hyper-V limitation when a GPU-P adapter is attached. Use `-StopVM` to reclaim 100% RAM, or run `-Mode Game` without `-SuspendVM` (VRAM is already 100% freed). |
 

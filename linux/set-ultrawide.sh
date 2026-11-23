@@ -46,8 +46,12 @@ EOF
 hyprctl reload
 sleep 1
 
-# Garante que hypridle não desligue o monitor virtual vkms (dpmsStatus: 0)
-mkdir -p ~/.config/systemd/user
+# Garante modo Stay Awake nativo do Omarchy 4.5 (evita dpmsStatus: 0 no monitor virtual vkms)
+if command -v omarchy-toggle-idle >/dev/null 2>&1; then
+    omarchy-toggle-idle stay-awake >/dev/null 2>&1 || true
+fi
+mkdir -p ~/.local/state/omarchy/indicators ~/.config/systemd/user
+touch ~/.local/state/omarchy/indicators/stay-awake
 ln -sf /dev/null ~/.config/systemd/user/hypridle.service 2>/dev/null || true
 pkill hypridle 2>/dev/null || true
 

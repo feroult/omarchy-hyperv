@@ -594,9 +594,13 @@ ln -sf \
     "${TARGET_HOME}/.config/systemd/user/sunshine.service" \
     "${TARGET_HOME}/.config/systemd/user/default.target.wants/sunshine.service"
 
-# Evita que o hypridle desligue o monitor virtual vkms (dpms off causa perda de scanout no Aquamarine)
+# Evita que o serviço de idle nativo do Omarchy 4.5 (QML) ou hypridle desligue o monitor virtual vkms (dpms off)
 # O monitor físico já é gerenciado pelo Windows Host bare-metal.
-mkdir -p "${TARGET_HOME}/.config/hypr" "${TARGET_HOME}/.config/systemd/user"
+if command -v omarchy-toggle-idle >/dev/null 2>&1; then
+    omarchy-toggle-idle stay-awake >/dev/null 2>&1 || true
+fi
+mkdir -p "${TARGET_HOME}/.local/state/omarchy/indicators" "${TARGET_HOME}/.config/hypr" "${TARGET_HOME}/.config/systemd/user"
+touch "${TARGET_HOME}/.local/state/omarchy/indicators/stay-awake"
 if [[ -f "${TARGET_HOME}/.config/hypr/hypridle.conf" ]]; then
     sed -i 's/^\([[:space:]]*on-timeout[[:space:]]*=[[:space:]]*.*dpms off.*\)/# [winix] \1/' "${TARGET_HOME}/.config/hypr/hypridle.conf"
 fi
