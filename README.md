@@ -73,7 +73,8 @@ omarchy-hyperv/
 │   ├── sync-gpu-drivers.ps1     # Sync Windows NVIDIA + WSL2 libs to VM (PowerShell)
 │   └── sync-gpu-drivers.sh      # Sync Windows NVIDIA + WSL2 libs to VM (WSL2 Bash)
 ├── gaming/
-│   └── toggle-game-mode.ps1     # One-command AI Mode <-> Gaming Mode switcher
+│   ├── toggle-game-mode.ps1           # One-command AI Mode <-> Gaming Mode switcher
+│   └── moonlight-auto-disconnect.ps1  # Auto-close Moonlight after N min unfocused (0% idle CPU)
 └── README.md
 ```
 
@@ -254,6 +255,22 @@ Before launching heavy Windows games like *Battlefield 6*:
 
 # Automatic toggle
 .\gaming\toggle-game-mode.ps1
+```
+
+### Auto-Disconnect Moonlight When Unfocused (Zero-Effort Cooling)
+
+Leave a lightweight (~0% CPU) Windows background watcher running at logon so that if you Alt-Tab back to Windows and leave Moonlight unfocused for 30 minutes, it closes Moonlight automatically — dropping Sunshine to `0% CPU` while keeping your Omarchy VM and all open Linux windows intact:
+
+```powershell
+# Install and start the hidden logon watcher (default: 30 min, no Admin required)
+.\gaming\moonlight-auto-disconnect.ps1 -InstallStartup
+
+# Custom timeout (e.g., 20 minutes)
+.\gaming\moonlight-auto-disconnect.ps1 -InstallStartup -IdleMinutes 20
+
+# Check status / recent logs, or uninstall
+.\gaming\moonlight-auto-disconnect.ps1 -Status
+.\gaming\moonlight-auto-disconnect.ps1 -UninstallStartup
 ```
 
 ---
