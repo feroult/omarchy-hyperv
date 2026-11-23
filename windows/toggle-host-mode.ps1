@@ -1,39 +1,38 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    Alterna rapidamente entre Modo IA (VM Hyprland + Moonlight) e Modo Jogo / Battlefield 6.
+    Alterna rapidamente entre Modo VM (Omarchy + Moonlight) e Modo Host (VRAM/CPU 100% livres no Windows).
 .DESCRIPTION
-    Modo BF6 (`-Mode Game`):
+    Modo Host (`-Mode Host`):
       1. Envia comando via SSH para a VM (192.168.50.2) descarregar 100% dos modelos ativos
          da VRAM (`ollama stop` em todos os modelos listados em `ollama ps`, além de suporte
-         opcional para reiniciar serviços de inferência como vLLM/Ollama).
+         opcional para reiniciar serviços de inferência).
       2. Fecha (ou minimiza com `-MinimizeOnly`) o `Moonlight.exe` no Windows para colocar
          o Sunshine em repouso imediato e zerar o uso de CPU/GPU na VM.
       3. Opcionalmente suspende a VM via `Save-VM` (`-SuspendVM`) ou desliga graciosamente
-         via `Stop-VM` (`-StopVM`) caso queira liberar 100% da RAM e VRAM.
+         via `Stop-VM` (`-StopVM`) caso queira liberar 100% da RAM.
 
-    Modo IA (`-Mode AI`):
-      1. Garante que a VM esteja em execução (retomando se salva/desligada) e aguarda SSH/Sunshine.
-      2. Reabre o `Moonlight.exe` no Windows (conectando direto ao Hyprland se `MOONLIGHT_AUTO_STREAM=true`).
+    Modo VM (`-Mode VM`):
+      1. Garante que a VM esteja em execução (iniciando se desligada) e aguarda SSH/Sunshine.
+      2. Reabre o `Moonlight.exe` no Windows (conectando direto ao Omarchy se `MOONLIGHT_AUTO_STREAM=true`).
 
-    Sem especificar `-Mode`, o script usa `Toggle` (se Moonlight estiver aberto ou VM rodando sem
-    marcador de modo jogo, entra em Modo BF6; caso contrário, retorna ao Modo IA).
+    Sem especificar `-Mode`, o script usa `Toggle` (alterna automaticamente entre Host e VM).
 
 .EXAMPLE
-    .\gaming\toggle-game-mode.ps1
+    .\windows\toggle-host-mode.ps1
 .EXAMPLE
-    .\gaming\toggle-game-mode.ps1 -Mode Game
+    .\windows\toggle-host-mode.ps1 -Mode Host
 .EXAMPLE
-    .\gaming\toggle-game-mode.ps1 -Mode Game -SuspendVM
+    .\windows\toggle-host-mode.ps1 -Mode Host -StopVM
 .EXAMPLE
-    .\gaming\toggle-game-mode.ps1 -Mode Game -MinimizeOnly
+    .\windows\toggle-host-mode.ps1 -Mode Host -MinimizeOnly
 .EXAMPLE
-    .\gaming\toggle-game-mode.ps1 -Mode AI
+    .\windows\toggle-host-mode.ps1 -Mode VM
 #>
 
 [CmdletBinding()]
 param(
-    [ValidateSet('Toggle', 'Game', 'AI')]
+    [ValidateSet('Toggle', 'Host', 'VM')]
     [string]$Mode = 'Toggle',
 
     [string]$EnvFile,
@@ -55,7 +54,7 @@ $ErrorActionPreference = 'Stop'
 # ==============================================================================
 # Helpers & Configuração Centralizada
 # ==============================================================================
-$commonScript = Join-Path (Join-Path $PSScriptRoot '..\windows') 'common.ps1'
+$commonScript = Join-Path $PSScriptRoot 'common.ps1'
 if (-not (Test-Path -LiteralPath $commonScript)) {
     throw "Arquivo auxiliar não encontrado: $commonScript"
 }
@@ -76,7 +75,7 @@ $AiServicesRaw       = Get-ConfigValue $cfg 'AI_SYSTEMD_SERVICES' 'ollama'
 $ForceRestartCfg     = (Get-ConfigValue $cfg 'AI_FORCE_RESTART_SERVICES' 'false').ToLowerInvariant() -eq 'true'
 $ShouldForceRestart  = $ForceRestartServices.IsPresent -or $ForceRestartCfg
 
-$StateFile = Join-Path $env:TEMP "winix-game-mode-${VMName}.state"
+$StateFile = Join-Path $env:TEMP "omarchy-host-mode-${VMName}.state"
 $sshArgs   = Get-SshBaseArgs -KeyPath $SSHKeyPath -Port $SSHPort -ConnectTimeout 5
 $remote    = "${VMUser}@${VMIP}"
 
@@ -286,10 +285,10 @@ $effectiveMode = $Mode
 if ($effectiveMode -eq 'Toggle') {
     $moonlightRunning = @(Get-Process -Name 'Moonlight' -ErrorAction SilentlyContinue).Count -gt 0
     if ($moonlightRunning -or -not (Test-Path -LiteralPath $StateFile)) {
-        $effectiveMode = 'Game'
+        $effectiveMode = 'Host'
     }
     else {
-        $effectiveMode = 'AI'
+        $effectiveMode = 'VM'
     }
     Write-Log "Modo Toggle detectou transição para: $effectiveMode" 'INFO'
 }
@@ -297,8 +296,8 @@ if ($effectiveMode -eq 'Toggle') {
 # ==============================================================================
 # Execução
 # ==============================================================================
-if ($effectiveMode -eq 'Game') {
-    Write-Log '=== Ativando MODO BF6 / GAMING (Liberando VRAM e pausando streaming) ===' 'STEP'
+if ($effectiveMode -eq 'Host') {
+    Write-Log '=== Ativando MODO HOST (Liberando VRAM e colocando streaming em repouso) ===' 'STEP'
 
     Invoke-UnloadVmVram -ServicesCsv $AiServicesRaw -ForceRestart $ShouldForceRestart
     Stop-OrMinimizeMoonlight -Minimize $MinimizeOnly.IsPresent
@@ -311,10 +310,10 @@ if ($effectiveMode -eq 'Game') {
     }
 
     Set-Content -LiteralPath $StateFile -Value (Get-Date -Format 'o') -Encoding UTF8
-    Write-Log '=== MODO BF6 ATIVO! VRAM livre e streaming em repouso. Bom jogo! ===' 'OK'
+    Write-Log '=== MODO HOST ATIVO! VRAM livre e Sunshine em repouso (0% CPU). ===' 'OK'
 }
 else {
-    Write-Log '=== Retornando ao MODO IA (VM Hyprland + Moonlight) ===' 'STEP'
+    Write-Log '=== Retornando ao MODO VM (Omarchy + Moonlight) ===' 'STEP'
 
     if (Test-IsAdministrator) {
         Invoke-HyperVPowerAction -Action 'Start'
@@ -347,5 +346,5 @@ else {
     if (Test-Path -LiteralPath $StateFile) {
         Remove-Item -LiteralPath $StateFile -Force -ErrorAction SilentlyContinue
     }
-    Write-Log '=== MODO IA ATIVO! ===' 'OK'
+    Write-Log '=== MODO VM ATIVO! ===' 'OK'
 }

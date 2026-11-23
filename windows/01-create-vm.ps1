@@ -298,7 +298,7 @@ Set-VMMemory `
     -MinimumBytes ([uint64]$MemoryMinGB * 1GB) `
     -MaximumBytes ([uint64]$MemoryMaxGB * 1GB)
 
-# Desativa Secure Boot APENAS na VM (o host bare-metal permanece com Secure Boot ON para EA Javelin/BF6)
+# Desativa Secure Boot APENAS na VM (o host Windows bare-metal permanece com Secure Boot ON)
 Set-VMFirmware -VMName $VMName -EnableSecureBoot Off
 
 # Checkpoints DESATIVADOS + GuestControlledCacheTypes + MMIO 1GB/64GB (requisitos críticos GPU-P)

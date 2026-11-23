@@ -717,10 +717,10 @@ sudo ufw --force enable
 sudo systemctl enable --now ufw
 log_ok "UFW ativo: bloqueio padrão de entrada, liberando SSH e Sunshine somente para ${NAT_SUBNET}."
 
-# 7.3 Sudoers mínimo (least-privilege) para automação sem senha de sync-gpu-drivers e toggle-game-mode
+# 7.3 Sudoers mínimo (least-privilege) para automação sem senha de sync-gpu-drivers e toggle-host-mode
 TMP_SUDOERS="$(mktemp /tmp/winix-sudoers.XXXXXX)"
 cat <<EOF > "$TMP_SUDOERS"
-# Winix :: Permissões mínimas para sync-gpu-drivers e toggle-game-mode (sem NOPASSWD global)
+# Winix :: Permissões mínimas para sync-gpu-drivers e toggle-host-mode (sem NOPASSWD global)
 ${TARGET_USER} ALL=(root) NOPASSWD: /usr/bin/ldconfig
 ${TARGET_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl restart ollama
 ${TARGET_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl stop ollama

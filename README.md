@@ -63,18 +63,17 @@ omarchy-hyperv/
 ├── .gitignore
 ├── LICENSE                      # MIT
 ├── windows/
-│   ├── common.ps1               # Shared PowerShell helpers (.env loader, logging, SSH capture)
-│   └── 01-create-vm.ps1         # Idempotent Hyper-V VM, internal switch/NAT, and GPU-P setup
-├── linux/
-│   ├── 02-setup-omarchy.sh      # [PRIMARY] Isolated Arch / Omarchy post-install integration
-│   ├── set-ultrawide.sh         # Switch 3440x1440 refresh rate between 120 / 144 / 165 Hz
-│   └── 02-setup-vm.sh           # Optional Ubuntu 24.04 LTS alternative (linux-azure)
-├── sync/
-│   ├── sync-gpu-drivers.ps1     # Sync Windows NVIDIA + WSL2 libs to VM (PowerShell)
-│   └── sync-gpu-drivers.sh      # Sync Windows NVIDIA + WSL2 libs to VM (WSL2 Bash)
-├── gaming/
-│   ├── toggle-game-mode.ps1           # One-command AI Mode <-> Gaming Mode switcher
+│   ├── common.ps1                     # Shared PowerShell helpers (.env loader, logging, SSH capture)
+│   ├── 01-create-vm.ps1               # Idempotent Hyper-V VM, internal switch/NAT, and GPU-P setup
+│   ├── toggle-host-mode.ps1           # One-command VM Mode <-> Host Priority Mode switcher
 │   └── moonlight-auto-disconnect.ps1  # Auto-close Moonlight after N min unfocused (0% idle CPU)
+├── linux/
+│   ├── 02-setup-omarchy.sh            # [PRIMARY] Isolated Arch / Omarchy post-install integration
+│   ├── set-ultrawide.sh               # Switch 3440x1440 refresh rate between 60 / 120 / 144 / 165 Hz
+│   └── 02-setup-vm.sh                 # Optional Ubuntu 24.04 LTS alternative (linux-azure)
+├── sync/
+│   ├── sync-gpu-drivers.ps1           # Sync Windows NVIDIA + WSL2 libs to VM (PowerShell)
+│   └── sync-gpu-drivers.sh            # Sync Windows NVIDIA + WSL2 libs to VM (WSL2 Bash)
 └── README.md
 ```
 
@@ -236,25 +235,25 @@ Re-run `.\sync\sync-gpu-drivers.ps1` (or `./sync/sync-gpu-drivers.sh` from WSL2)
 
 ---
 
-## Step 5 — Switching Between AI Mode and Gaming Mode
+## Step 5 — Switching Between VM Mode and Host Priority Mode
 
-Before launching heavy Windows games like *Battlefield 6*:
+Whenever you want 100% of your GPU VRAM and CPU freed for heavy Windows workloads (3D rendering, video editing, games, etc.) without shutting down the VM:
 
 ```powershell
-# Unload all active LLM models from VRAM (ollama stop) and close Moonlight (Sunshine idles at ~0% CPU)
-.\gaming\toggle-game-mode.ps1 -Mode Game
+# Unload all active LLM models from VRAM (ollama stop) and close Moonlight (Sunshine idles at 0% CPU)
+.\windows\toggle-host-mode.ps1 -Mode Host
 
 # Optional: minimize Moonlight instead of closing it
-.\gaming\toggle-game-mode.ps1 -Mode Game -MinimizeOnly
+.\windows\toggle-host-mode.ps1 -Mode Host -MinimizeOnly
 
-# Optional (Admin): Save-VM (-SuspendVM) or graceful Stop-VM (-StopVM) to reclaim 100% RAM
-.\gaming\toggle-game-mode.ps1 -Mode Game -StopVM
+# Optional (Admin): graceful Stop-VM (-StopVM) or Save-VM (-SuspendVM) to reclaim 100% RAM
+.\windows\toggle-host-mode.ps1 -Mode Host -StopVM
 
-# Return to AI / Omarchy Mode (ensures VM is running and launches Moonlight)
-.\gaming\toggle-game-mode.ps1 -Mode AI
+# Return to VM / Omarchy Mode (ensures VM is running and launches Moonlight)
+.\windows\toggle-host-mode.ps1 -Mode VM
 
 # Automatic toggle
-.\gaming\toggle-game-mode.ps1
+.\windows\toggle-host-mode.ps1
 ```
 
 ### Auto-Disconnect Moonlight When Unfocused (Zero-Effort Cooling)
@@ -263,14 +262,14 @@ Leave a lightweight (~0% CPU) Windows background watcher running at logon so tha
 
 ```powershell
 # Install and start the hidden logon watcher (default: 30 min, no Admin required)
-.\gaming\moonlight-auto-disconnect.ps1 -InstallStartup
+.\windows\moonlight-auto-disconnect.ps1 -InstallStartup
 
 # Custom timeout (e.g., 20 minutes)
-.\gaming\moonlight-auto-disconnect.ps1 -InstallStartup -IdleMinutes 20
+.\windows\moonlight-auto-disconnect.ps1 -InstallStartup -IdleMinutes 20
 
 # Check status / recent logs, or uninstall
-.\gaming\moonlight-auto-disconnect.ps1 -Status
-.\gaming\moonlight-auto-disconnect.ps1 -UninstallStartup
+.\windows\moonlight-auto-disconnect.ps1 -Status
+.\windows\moonlight-auto-disconnect.ps1 -UninstallStartup
 ```
 
 ---
@@ -285,7 +284,7 @@ Leave a lightweight (~0% CPU) Windows background watcher running at logon so tha
 | Stuck on Omarchy boot splash or `GBM: bo null` in `hyprland.log` | Ensure `~/.config/uwsm/env-hyprland` exports `AQ_DRM_DEVICES=/dev/dri/card0`, `AQ_NO_MODIFIERS=1`, `LIBGL_ALWAYS_SOFTWARE=1`, and `GALLIUM_DRIVER=llvmpipe` to prevent `vkms` + `hyperv_drm` multi-GPU GBM allocation failures. |
 | Black screen in Moonlight after being idle | Omarchy 4.5's QML idle service triggered `dpms off` on `vkms` (`dpmsStatus: 0`). Run `omarchy-toggle-idle stay-awake` (persists across reboots) and `sudo systemctl restart sddm` to wake the session cleanly. |
 | Black borders on all 4 sides on an Ultrawide monitor | Set Moonlight's **Resolution** setting to **`3440x1440`** instead of `1080p`/`1440p` (16:9). |
-| `Save-VM` fails with `-SuspendVM` | Known Hyper-V limitation when a GPU-P adapter is attached. Use `-StopVM` to reclaim 100% RAM, or run `-Mode Game` without `-SuspendVM` (VRAM is already 100% freed). |
+| `Save-VM` fails with `-SuspendVM` | Known Hyper-V limitation when a GPU-P adapter is attached. Use `-StopVM` to reclaim 100% RAM, or run `-Mode Host` without `-SuspendVM` (VRAM is already 100% freed). |
 
 ---
 

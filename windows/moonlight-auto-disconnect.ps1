@@ -13,16 +13,16 @@
 
 .EXAMPLE
     # Instalar para rodar silenciosamente em segundo plano a cada login no Windows (recomendado):
-    .\gaming\moonlight-auto-disconnect.ps1 -InstallStartup
+    .\windows\moonlight-auto-disconnect.ps1 -InstallStartup
 
 .EXAMPLE
     # Instalar com tempo customizado (ex: 20 minutos):
-    .\gaming\moonlight-auto-disconnect.ps1 -InstallStartup -IdleMinutes 20
+    .\windows\moonlight-auto-disconnect.ps1 -InstallStartup -IdleMinutes 20
 
 .EXAMPLE
     # Verificar status ou remover inicialização automática:
-    .\gaming\moonlight-auto-disconnect.ps1 -Status
-    .\gaming\moonlight-auto-disconnect.ps1 -UninstallStartup
+    .\windows\moonlight-auto-disconnect.ps1 -Status
+    .\windows\moonlight-auto-disconnect.ps1 -UninstallStartup
 #>
 
 [CmdletBinding()]
@@ -42,7 +42,7 @@ $ErrorActionPreference = 'Stop'
 # ==============================================================================
 # Helpers & Configuração Centralizada (suporta execução standalone via %LOCALAPPDATA%)
 # ==============================================================================
-$commonScript = Join-Path (Join-Path $PSScriptRoot '..\windows') 'common.ps1'
+$commonScript = Join-Path $PSScriptRoot 'common.ps1'
 $cfg = @{}
 if (Test-Path -LiteralPath $commonScript) {
     . $commonScript
@@ -241,9 +241,9 @@ try {
                     Close-MoonlightGracefully -MoonlightProcs $procs
 
                     if ($AlsoUnloadVram) {
-                        $toggleScript = Join-Path $PSScriptRoot 'toggle-game-mode.ps1'
+                        $toggleScript = Join-Path $PSScriptRoot 'toggle-host-mode.ps1'
                         if (Test-Path -LiteralPath $toggleScript) {
-                            try { & $toggleScript -Mode Game | Out-Null } catch { }
+                            try { & $toggleScript -Mode Host | Out-Null } catch { }
                         }
                     }
 
